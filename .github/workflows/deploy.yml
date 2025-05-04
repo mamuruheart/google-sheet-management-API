@@ -1,0 +1,42 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main  # or your deploy branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies and Build
+      run: |
+        cd frontend
+        npm install
+        npm run build
+        cd ../backend
+        npm install
+        tsc
+
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd /home/ubuntu/your-project-folder
+          git pull origin main
+          cd frontend && npm install && npm run build
+          cd ../backend && npm install && tsc
+          pm2 restart all || pm2 start dist/index.js --name "your-app"
+          
